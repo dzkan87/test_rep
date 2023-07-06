@@ -4,8 +4,7 @@ CREATE OR REPLACE PROCEDURE anlz.data_load_ratings_max()
  AS
 $$
 BEGIN
-    TRUNCATE TABLE anlz.max_ratings;
-    INSERT INTO anlz.max_ratings (
+    INSERT OVERWRITE INTO anlz.max_ratings (
         year,
         max_metacritic_rating,
         max_reviewer_rating)
