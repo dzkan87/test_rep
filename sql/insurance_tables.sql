@@ -12,14 +12,31 @@ CREATE TABLE IF NOT EXISTS core.insurance (
     source_table VARCHAR(16),
     insert_date DATE DEFAULT CURRENT_DATE());
 
-CREATE TABLE IF NOT EXISTS anlz.smokers_people (
-    region VARCHAR(16),
-    smokers_people INT);
+CREATE OR REPLACE DYNAMIC TABLE anlz.smokers_people
+TARGET_LAG = '24 hours'
+WAREHOUSE = COMPUTE_WH
+AS
+    SELECT region,
+           COUNT(1) AS smokers_people
+      FROM core.insurance
+     WHERE smoker = 'yes'
+     GROUP BY region;
 
-CREATE TABLE IF NOT EXISTS anlz.obesity_people (
-    region VARCHAR(16),
-    obesity_people INT);
+CREATE OR REPLACE DYNAMIC TABLE anlz.obesity_people
+TARGET_LAG = '24 hours'
+WAREHOUSE = COMPUTE_WH
+AS
+    SELECT region,
+           COUNT(1) AS obesity_people
+      FROM core.insurance
+     WHERE bmi > 30
+     GROUP BY region;
 
-CREATE TABLE IF NOT EXISTS anlz.ins_pays (
-    age INT,
-    ins_pays NUMERIC(17,7));
+CREATE OR REPLACE DYNAMIC TABLE anlz.ins_pays
+TARGET_LAG = '24 hours'
+WAREHOUSE = COMPUTE_WH
+AS
+    SELECT age,
+           SUM(charges) AS ins_pays
+      FROM core.INSURANCE
+     GROUP BY age;

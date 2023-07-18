@@ -23,13 +23,10 @@ def load_insurance_statistics():
     )
     load_insurance_to_core = SnowflakeOperator(
         task_id="load_insurance_to_core",
-        sql='''
-            CALL core.data_load_insurance();
-            ''',
+        sql="{{ var.value.LOAD_CORE_INSURANCE }}",
         snowflake_conn_id="snowflake_conn"
     )
     tables = ['anlz.smokers_people', 'anlz.obesity_people', 'anlz.ins_pays']
-
     check_statistics_load = DummyOperator(
         task_id="check_statistics_load"
     )
@@ -40,12 +37,12 @@ def load_insurance_statistics():
     start_load >> load_insurance_to_core
 
     for table in tables:
-        load_statistic_to_table = SnowflakeOperator(
-            task_id=f"load_statistic_to_{table}",
-            sql=f"CALL anlz.data_load_statistics('{table}');",
+        refresh_statistic_to_table = SnowflakeOperator(
+            task_id=f"refresh_statistic_to_{table}",
+            sql=f"ALTER DYNAMIC TABLE {table} REFRESH",
             snowflake_conn_id="snowflake_conn"
         )
-#проверку на полноту таблиц сделал в виде сенсора. Если таблицы пустые даг упадет с ошибкой
+#Performed a check for table completeness using a sensor
         table_sensor = SqlSensor(
             task_id=f"check_{table}_not_empty",
             conn_id="snowflake_conn",
@@ -55,7 +52,7 @@ def load_insurance_statistics():
             poke_interval=10
         )
 
-        load_insurance_to_core >> load_statistic_to_table >> check_statistics_load >> table_sensor >> finish_load
+        load_insurance_to_core >> refresh_statistic_to_table >> check_statistics_load >> table_sensor >> finish_load
 
 
 dag = load_insurance_statistics()
